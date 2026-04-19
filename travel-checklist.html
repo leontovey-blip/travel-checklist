@@ -1,0 +1,1235 @@
+<!DOCTYPE html>
+<!-- Version 2.1 - Updated badge colors -->
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#667eea">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="旅行清单">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icon-192.png">
+    <title>旅行物品备忘录</title>
+    <style>
+        /* ==================== 全局样式 ==================== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            transition: background 0.5s ease;
+        }
+
+        /* 完成状态的绿色主题 */
+        body.completed-theme {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            min-height: calc(100vh - 40px);
+        }
+
+        /* ==================== 头部区域 ==================== */
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px 20px;
+            text-align: center;
+            transition: background 0.5s ease;
+        }
+
+        body.completed-theme .header {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+        }
+
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+
+        /* ==================== 完成提示 ==================== */
+        .completion-message {
+            display: none;
+            text-align: center;
+            padding: 20px;
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            color: white;
+        }
+
+        .completion-message.show {
+            display: block;
+            animation: pulse 2s infinite;
+        }
+
+        .completion-message h2 {
+            font-size: 24px;
+            margin-bottom: 5px;
+        }
+
+        .completion-message p {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.02); }
+        }
+
+        /* ==================== 物品列表区域 ==================== */
+        .items-section {
+            padding: 20px;
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .section-title {
+            font-size: 18px;
+            color: #333;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .section-title span {
+            background: #667eea;
+            color: white;
+            padding: 2px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            transition: background 0.5s ease;
+        }
+
+        body.completed-theme .section-title span {
+            background: #11998e;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #adb5bd;
+        }
+
+        .empty-state svg {
+            width: 80px;
+            height: 80px;
+            margin-bottom: 15px;
+            opacity: 0.5;
+        }
+
+        .empty-state p {
+            font-size: 16px;
+        }
+
+        /* ==================== 物品卡片 ==================== */
+        .item-card {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+        }
+
+        .item-card:hover {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .item-card.ready {
+            background: #e8f5e9;
+            border-color: #4caf50;
+        }
+
+        .item-card.not-needed {
+            background: #e3f2fd;
+            border-color: #2196f3;
+        }
+
+        .item-checkbox {
+            width: 24px;
+            height: 24px;
+            cursor: pointer;
+            accent-color: #667eea;
+        }
+
+        .item-details {
+            flex: 1;
+        }
+
+        .item-name {
+            font-size: 16px;
+            font-weight: 500;
+            color: #333;
+            margin-bottom: 4px;
+        }
+
+        .item-card.ready .item-name {
+            color: #333;
+        }
+
+        .item-card.not-needed .item-name {
+            text-decoration: line-through;
+            color: #999;
+        }
+
+        .item-meta {
+            display: flex;
+            gap: 10px;
+            font-size: 12px;
+            color: #6c757d;
+            align-items: center;
+        }
+
+        .item-category {
+            background: #e3f2fd;
+            color: #1976d2;
+            padding: 2px 8px;
+            border-radius: 4px;
+        }
+
+        .item-status-badge {
+            font-size: 11px;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-weight: 500;
+        }
+
+        .badge-ready {
+            background: #4caf50;
+            color: white;
+        }
+
+        .badge-not-needed {
+            background: #2196f3;
+            color: white;
+        }
+
+        .item-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn-icon {
+            width: 32px;
+            height: 32px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+            font-size: 14px;
+        }
+
+        .btn-toggle {
+            background: transparent;
+            color: #666;
+            font-size: 18px;
+        }
+
+        .btn-toggle:hover {
+            background: #f0f0f0;
+        }
+
+        .btn-delete {
+            background: transparent;
+            color: #999;
+            font-size: 18px;
+        }
+
+        .btn-delete:hover {
+            background: #f0f0f0;
+            color: #f44336;
+        }
+
+        /* ==================== 类别分组样式 ==================== */
+        .category-group {
+            margin-bottom: 20px;
+        }
+
+        .category-group-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 10px;
+            cursor: pointer;
+            user-select: none;
+            margin-bottom: 10px;
+        }
+
+        .category-group-header:hover {
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+
+        .category-toggle-icon {
+            font-size: 12px;
+            transition: transform 0.3s ease;
+        }
+
+        .category-toggle-icon.collapsed {
+            transform: rotate(-90deg);
+        }
+
+        .category-group-name {
+            flex: 1;
+            font-size: 16px;
+            font-weight: 500;
+        }
+
+        .category-group-count {
+            background: rgba(255, 255, 255, 0.3);
+            padding: 2px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+        }
+
+        .category-group-items {
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+
+        .category-group-items.collapsed {
+            max-height: 0 !important;
+        }
+
+        /* ==================== 底部操作区域 ==================== */
+        .bottom-section {
+            background: #f8f9fa;
+            border-top: 1px solid #e9ecef;
+            padding: 15px 20px;
+        }
+
+        .btn-action {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-add-main {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            transition: background 0.5s ease, box-shadow 0.2s ease, transform 0.2s ease;
+        }
+
+        body.completed-theme .btn-add-main {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+        }
+
+        body.completed-theme .btn-add-main:hover {
+            box-shadow: 0 4px 12px rgba(17, 153, 142, 0.4);
+        }
+
+        .btn-reset {
+            background: white;
+            color: #666;
+            border: 2px solid #e0e0e0;
+        }
+
+        .btn-reset:hover {
+            background: #f5f5f5;
+            border-color: #ccc;
+        }
+
+        /* ==================== 进度条区域（底部） ==================== */
+        .progress-section {
+            padding: 15px 20px;
+            background: white;
+            border-top: 1px solid #e9ecef;
+        }
+
+        .progress-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .progress-label {
+            font-size: 13px;
+            color: #6c757d;
+        }
+
+        .progress-percentage {
+            font-size: 16px;
+            font-weight: bold;
+            color: #667eea;
+            transition: color 0.5s ease;
+        }
+
+        body.completed-theme .progress-percentage {
+            color: #11998e;
+        }
+
+        .progress-bar-container {
+            height: 10px;
+            background: #e9ecef;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            border-radius: 5px;
+            transition: width 0.3s ease, background 0.5s ease;
+        }
+
+        body.completed-theme .progress-bar {
+            background: linear-gradient(90deg, #11998e 0%, #38ef7d 100%);
+        }
+
+        /* ==================== 添加物品弹窗 ==================== */
+        .add-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            align-items: flex-end;
+            justify-content: center;
+        }
+
+        .add-modal.show {
+            display: flex;
+        }
+
+        .add-modal-content {
+            background: white;
+            border-radius: 20px 20px 0 0;
+            padding: 24px;
+            width: 100%;
+            max-width: 600px;
+            max-height: 80vh;
+            overflow-y: auto;
+            animation: slideUp 0.3s ease;
+        }
+
+        @keyframes slideUp {
+            from { transform: translateY(100%); }
+            to { transform: translateY(0); }
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-header h3 {
+            font-size: 20px;
+            color: #333;
+        }
+
+        .btn-close-modal {
+            width: 36px;
+            height: 36px;
+            border: none;
+            background: #f5f5f5;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #666;
+        }
+
+        .btn-close-modal:hover {
+            background: #e0e0e0;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 14px;
+            color: #333;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: border-color 0.2s ease;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn-submit {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        .btn-submit:hover {
+            opacity: 0.9;
+        }
+
+        /* 类别管理区域（在添加物品弹窗内） */
+        .category-manage-section {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #e9ecef;
+        }
+
+        .category-manage-title {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .category-list-small {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .category-tag {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            background: #f0f0f0;
+            border-radius: 20px;
+            font-size: 13px;
+        }
+
+        .category-tag input {
+            border: none;
+            background: transparent;
+            font-size: 13px;
+            width: 60px;
+            padding: 2px;
+        }
+
+        .category-tag input:focus {
+            outline: none;
+            border-bottom: 1px solid #667eea;
+        }
+
+        .btn-delete-cat-small {
+            background: none;
+            border: none;
+            color: #f44336;
+            cursor: pointer;
+            font-size: 14px;
+            padding: 0;
+            width: 18px;
+            height: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .add-category-inline {
+            display: flex;
+            gap: 8px;
+        }
+
+        .add-category-inline input {
+            flex: 1;
+            padding: 8px 12px;
+            border: 2px dashed #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        .add-category-inline input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn-add-cat-inline {
+            padding: 8px 16px;
+            background: #ff9800;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            white-space: nowrap;
+        }
+
+        .btn-add-cat-inline:hover {
+            background: #f57c00;
+        }
+
+        /* ==================== 响应式设计 ==================== */
+        @media (max-width: 480px) {
+            body {
+                padding: 0;
+            }
+
+            .container {
+                border-radius: 0;
+                min-height: 100vh;
+            }
+
+            .header h1 {
+                font-size: 24px;
+            }
+
+            .item-card {
+                flex-wrap: wrap;
+            }
+
+            .item-actions {
+                width: 100%;
+                justify-content: flex-end;
+                margin-top: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 头部标题 -->
+        <div class="header">
+            <h1>✈️ 旅行物品备忘录</h1>
+            <p>轻松管理你的旅行清单，确保不遗漏任何物品</p>
+        </div>
+
+        <!-- 完成提示消息 -->
+        <div class="completion-message" id="completionMessage">
+            <h2>🎉 马上出发！</h2>
+            <p>所有物品已准备就绪，祝你旅途愉快！</p>
+        </div>
+
+        <!-- 物品列表区域 -->
+        <div class="items-section">
+            <div id="itemsList">
+                <!-- 物品将通过JavaScript动态添加 -->
+            </div>
+        </div>
+
+        <!-- 底部操作区域 -->
+        <div class="bottom-section">
+            <button class="btn-action btn-add-main" onclick="openAddModal()">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+                添加物品
+            </button>
+            <button class="btn-action btn-reset" onclick="resetAllItems()">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="1 4 1 10 7 10"></polyline>
+                    <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
+                </svg>
+                一键复位
+            </button>
+        </div>
+
+        <!-- 进度条区域（最底部） -->
+        <div class="progress-section">
+            <div class="progress-info">
+                <span class="progress-label">准备进度</span>
+                <span class="progress-percentage" id="progressPercentage">0%</span>
+            </div>
+            <div class="progress-bar-container">
+                <div class="progress-bar" id="progressBar" style="width: 0%"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 添加物品弹窗 -->
+    <div class="add-modal" id="addModal">
+        <div class="add-modal-content">
+            <div class="modal-header">
+                <h3>添加新物品</h3>
+                <button class="btn-close-modal" onclick="closeAddModal()">×</button>
+            </div>
+            <form id="addItemForm">
+                <div class="form-group">
+                    <label for="itemName">物品名称</label>
+                    <input type="text" id="itemName" placeholder="例如：护照、充电器..." required autocomplete="off">
+                </div>
+                <div class="form-group">
+                    <label for="itemCategory">类别</label>
+                    <select id="itemCategory">
+                        <!-- 类别选项将通过JavaScript动态生成 -->
+                    </select>
+                </div>
+                <button type="submit" class="btn-submit">确认添加</button>
+            </form>
+
+            <!-- 类别管理区域 -->
+            <div class="category-manage-section">
+                <div class="category-manage-title">📂 管理类别</div>
+                <div class="category-list-small" id="categoryListSmall">
+                    <!-- 类别标签将通过JavaScript动态生成 -->
+                </div>
+                <div class="add-category-inline">
+                    <input type="text" id="newCategoryNameInline" placeholder="输入新类别名称">
+                    <button class="btn-add-cat-inline" onclick="addCategoryInline()">添加</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ==================== 数据存储和管理 ====================
+
+        // 从localStorage加载物品数据
+        let items = JSON.parse(localStorage.getItem('travelItems')) || [];
+
+        // 默认类别列表
+        const defaultCategories = ['证件', '衣物', '电子设备', '洗漱用品', '药品', '其他'];
+
+        // 从localStorage加载类别数据
+        let categories = JSON.parse(localStorage.getItem('travelCategories')) || [...defaultCategories];
+
+        // 记录每个类别的展开/折叠状态
+        let collapsedCategories = JSON.parse(localStorage.getItem('collapsedCategories')) || {};
+
+        /**
+         * 保存物品数据到localStorage
+         */
+        function saveItems() {
+            localStorage.setItem('travelItems', JSON.stringify(items));
+        }
+
+        /**
+         * 保存类别数据到localStorage
+         */
+        function saveCategories() {
+            localStorage.setItem('travelCategories', JSON.stringify(categories));
+        }
+
+        /**
+         * 保存类别折叠状态到localStorage
+         */
+        function saveCollapsedCategories() {
+            localStorage.setItem('collapsedCategories', JSON.stringify(collapsedCategories));
+        }
+
+        // ==================== 弹窗控制 ====================
+
+        /**
+         * 打开添加物品弹窗
+         */
+        function openAddModal() {
+            document.getElementById('addModal').classList.add('show');
+            updateCategorySelect();
+            renderCategoryListSmall();
+            setTimeout(() => {
+                document.getElementById('itemName').focus();
+            }, 100);
+        }
+
+        /**
+         * 关闭添加物品弹窗
+         */
+        function closeAddModal() {
+            document.getElementById('addModal').classList.remove('show');
+            // 清空表单
+            document.getElementById('itemName').value = '';
+            document.getElementById('newCategoryNameInline').value = '';
+        }
+
+        // 点击弹窗外部关闭
+        document.getElementById('addModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeAddModal();
+            }
+        });
+
+        // ==================== 类别管理功能 ====================
+
+        /**
+         * 更新类别选择框选项
+         */
+        function updateCategorySelect() {
+            const select = document.getElementById('itemCategory');
+            select.innerHTML = categories.map(cat =>
+                `<option value="${escapeHtml(cat)}">${escapeHtml(cat)}</option>`
+            ).join('');
+        }
+
+        /**
+         * 渲染小类别列表（在弹窗内）
+         */
+        function renderCategoryListSmall() {
+            const container = document.getElementById('categoryListSmall');
+            container.innerHTML = categories.map((category, index) => `
+                <div class="category-tag">
+                    <input type="text" value="${escapeHtml(category)}"
+                           onchange="updateCategoryName(${index}, this.value)"
+                           onblur="if(!this.value.trim()) this.value='${escapeHtml(category)}'">
+                    <button class="btn-delete-cat-small" onclick="deleteCategory(${index})"
+                            title="删除类别" ${categories.length <= 1 ? 'disabled style="opacity: 0.3;"' : ''}>
+                        ×
+                    </button>
+                </div>
+            `).join('');
+        }
+
+        /**
+         * 添加新类别（弹窗内）
+         */
+        function addCategoryInline() {
+            const input = document.getElementById('newCategoryNameInline');
+            const name = input.value.trim();
+
+            if (!name) {
+                alert('请输入类别名称');
+                return;
+            }
+
+            if (categories.includes(name)) {
+                alert('该类别已存在');
+                return;
+            }
+
+            categories.push(name);
+            saveCategories();
+            renderCategoryListSmall();
+            updateCategorySelect();
+            input.value = '';
+            input.focus();
+        }
+
+        /**
+         * 更新类别名称
+         */
+        function updateCategoryName(index, newName) {
+            const name = newName.trim();
+
+            if (!name) {
+                alert('类别名称不能为空');
+                renderCategoryListSmall();
+                return;
+            }
+
+            if (categories.includes(name) && categories.indexOf(name) !== index) {
+                alert('该类别名称已存在');
+                renderCategoryListSmall();
+                return;
+            }
+
+            const oldName = categories[index];
+            categories[index] = name;
+
+            // 更新所有使用该类别的物品
+            items.forEach(item => {
+                if (item.category === oldName) {
+                    item.category = name;
+                }
+            });
+
+            saveCategories();
+            saveItems();
+            renderCategoryListSmall();
+            updateCategorySelect();
+            renderItems();
+        }
+
+        /**
+         * 删除类别
+         */
+        function deleteCategory(index) {
+            if (categories.length <= 1) {
+                alert('至少需要保留一个类别');
+                return;
+            }
+
+            const categoryToDelete = categories[index];
+            const hasItems = items.some(item => item.category === categoryToDelete);
+
+            if (hasItems) {
+                if (!confirm(`类别"${categoryToDelete}"下有物品，删除后这些物品将移动到"其他"类别。是否继续？`)) {
+                    return;
+                }
+
+                // 将该类别下的物品移动到"其他"类别
+                items.forEach(item => {
+                    if (item.category === categoryToDelete) {
+                        item.category = '其他';
+                    }
+                });
+
+                // 确保"其他"类别存在
+                if (!categories.includes('其他')) {
+                    categories.push('其他');
+                }
+
+                saveItems();
+            }
+
+            categories.splice(index, 1);
+            saveCategories();
+            renderCategoryListSmall();
+            updateCategorySelect();
+            renderItems();
+        }
+
+        // 监听回车键添加类别
+        document.getElementById('newCategoryNameInline').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                addCategoryInline();
+            }
+        });
+
+        // ==================== 渲染功能 ====================
+
+        /**
+         * 渲染物品列表（固定使用分组视图）
+         */
+        function renderItems() {
+            const itemsList = document.getElementById('itemsList');
+
+            // 如果列表为空，显示空状态提示
+            if (items.length === 0) {
+                itemsList.innerHTML = `
+                    <div class="empty-state">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                        </svg>
+                        <p>还没有添加物品，点击"添加物品"开始吧！</p>
+                    </div>
+                `;
+                updateProgress();
+                return;
+            }
+
+            // 按类别分组物品
+            const groupedItems = {};
+            categories.forEach(cat => {
+                groupedItems[cat] = items.filter(item => item.category === cat);
+            });
+
+            // 生成HTML（只显示有物品的类别）
+            const hasItems = categories.filter(cat => groupedItems[cat] && groupedItems[cat].length > 0);
+
+            if (hasItems.length === 0) {
+                itemsList.innerHTML = `
+                    <div class="empty-state">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                        </svg>
+                        <p>还没有添加物品，点击"添加物品"开始吧！</p>
+                    </div>
+                `;
+                updateProgress();
+                return;
+            }
+
+            itemsList.innerHTML = hasItems.map(category => {
+                const categoryItems = groupedItems[category];
+                const isCollapsed = collapsedCategories[category];
+                const readyCount = categoryItems.filter(item => item.status === 'ready').length;
+                const notNeededCount = categoryItems.filter(item => item.status === 'not-needed').length;
+                const completedCount = readyCount + notNeededCount;
+
+                return `
+                    <div class="category-group">
+                        <div class="category-group-header" onclick="toggleCategoryCollapse('${escapeHtml(category)}')">
+                            <span class="category-toggle-icon ${isCollapsed ? 'collapsed' : ''}">▼</span>
+                            <span class="category-group-name">${escapeHtml(category)}</span>
+                            <span class="category-group-count">${completedCount}/${categoryItems.length}</span>
+                        </div>
+                        <div class="category-group-items ${isCollapsed ? 'collapsed' : ''}"
+                             style="max-height: ${isCollapsed ? '0' : categoryItems.length * 200 + 'px'}">
+                            ${categoryItems.map(item => renderItemCard(item)).join('')}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            // 更新进度条
+            updateProgress();
+        }
+
+        /**
+         * 渲染单个物品卡片（移除数量显示）
+         */
+        function renderItemCard(item) {
+            let statusClass = '';
+            let statusBadge = '';
+
+            if (item.status === 'ready') {
+                statusClass = 'ready';
+                statusBadge = '<span class="item-status-badge badge-ready">已准备</span>';
+            } else if (item.status === 'not-needed') {
+                statusClass = 'not-needed';
+                statusBadge = '<span class="item-status-badge badge-not-needed">无需准备</span>';
+            }
+
+            return `
+                <div class="item-card ${statusClass}" data-id="${item.id}">
+                    <input type="checkbox" class="item-checkbox"
+                           ${item.status === 'ready' ? 'checked' : ''}
+                           onchange="toggleItemStatus(${item.id})">
+                    <div class="item-details">
+                        <div class="item-name">${escapeHtml(item.name)}</div>
+                        <div class="item-meta">
+                            <span class="item-category">${escapeHtml(item.category)}</span>
+                            ${statusBadge}
+                        </div>
+                    </div>
+                    <div class="item-actions">
+                        <button class="btn-icon btn-toggle" onclick="cycleItemStatus(${item.id})" title="切换状态">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="23 4 23 10 17 10"></polyline>
+                                <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+                            </svg>
+                        </button>
+                        <button class="btn-icon btn-delete" onclick="deleteItem(${item.id})" title="删除">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="3 6 5 6 21 6"></polyline>
+                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        /**
+         * 转义HTML特殊字符，防止XSS攻击
+         */
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        /**
+         * 更新进度条和完成状态
+         */
+        function updateProgress() {
+            if (items.length === 0) {
+                document.getElementById('progressBar').style.width = '0%';
+                document.getElementById('progressPercentage').textContent = '0%';
+                document.getElementById('completionMessage').classList.remove('show');
+                return;
+            }
+
+            // 计算已完成和无需准备的物品数量
+            const completedItems = items.filter(item =>
+                item.status === 'ready' || item.status === 'not-needed'
+            ).length;
+
+            // 计算完成百分比
+            const percentage = Math.round((completedItems / items.length) * 100);
+
+            // 更新进度条
+            document.getElementById('progressBar').style.width = percentage + '%';
+            document.getElementById('progressPercentage').textContent = percentage + '%';
+
+            // 如果所有物品都已完成，显示完成提示并切换主题
+            const completionMessage = document.getElementById('completionMessage');
+            if (percentage === 100) {
+                completionMessage.classList.add('show');
+                // 切换为绿色主题
+                document.body.classList.add('completed-theme');
+            } else {
+                completionMessage.classList.remove('show');
+                // 恢复紫色主题
+                document.body.classList.remove('completed-theme');
+            }
+        }
+
+        // ==================== 物品操作功能 ====================
+
+        /**
+         * 添加新物品（移除数量参数）
+         */
+        function addItem(name, category) {
+            const newItem = {
+                id: Date.now(),
+                name: name,
+                category: category,
+                status: 'pending'
+            };
+
+            items.push(newItem);
+            saveItems();
+            renderItems();
+        }
+
+        /**
+         * 删除物品
+         */
+        function deleteItem(id) {
+            if (confirm('确定要删除这个物品吗？')) {
+                items = items.filter(item => item.id !== id);
+                saveItems();
+                renderItems();
+            }
+        }
+
+        /**
+         * 切换物品的复选框状态
+         */
+        function toggleItemStatus(id) {
+            const item = items.find(item => item.id === id);
+            if (item) {
+                item.status = item.status === 'ready' ? 'pending' : 'ready';
+                saveItems();
+                renderItems();
+            }
+        }
+
+        /**
+         * 循环切换物品状态
+         */
+        function cycleItemStatus(id) {
+            const item = items.find(item => item.id === id);
+            if (item) {
+                if (item.status === 'pending') {
+                    item.status = 'ready';
+                } else if (item.status === 'ready') {
+                    item.status = 'not-needed';
+                } else {
+                    item.status = 'pending';
+                }
+                saveItems();
+                renderItems();
+            }
+        }
+
+        /**
+         * 一键复位所有物品状态
+         */
+        function resetAllItems() {
+            if (items.length === 0) {
+                alert('当前没有物品');
+                return;
+            }
+
+            if (!confirm('确定要将所有物品重置为"待准备"状态吗？')) {
+                return;
+            }
+
+            items.forEach(item => {
+                item.status = 'pending';
+            });
+
+            saveItems();
+            renderItems();
+
+            // 一键复位后，确保恢复紫色主题
+            document.body.classList.remove('completed-theme');
+        }
+
+        /**
+         * 切换类别分组的展开/折叠状态
+         */
+        function toggleCategoryCollapse(category) {
+            collapsedCategories[category] = !collapsedCategories[category];
+            saveCollapsedCategories();
+            renderItems();
+        }
+
+        // ==================== 事件监听 ====================
+
+        // 监听表单提交事件
+        document.getElementById('addItemForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const name = document.getElementById('itemName').value.trim();
+            const category = document.getElementById('itemCategory').value;
+
+            if (name) {
+                addItem(name, category);
+
+                // 清空物品名称，但保持弹窗打开以便继续添加
+                document.getElementById('itemName').value = '';
+                document.getElementById('itemName').focus();
+            }
+        });
+
+        // ==================== 初始化 ====================
+
+        // 页面加载时初始化
+        renderItems();
+
+        // ==================== PWA Service Worker 注册 ====================
+
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                    .then((registration) => {
+                        console.log('Service Worker 注册成功:', registration.scope);
+                    })
+                    .catch((error) => {
+                        console.log('Service Worker 注册失败:', error);
+                    });
+            });
+        }
+
+        let deferredPrompt;
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            console.log('PWA可以安装了');
+        });
+    </script>
+</body>
+</html>
