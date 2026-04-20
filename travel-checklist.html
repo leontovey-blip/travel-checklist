@@ -176,6 +176,10 @@
             accent-color: #667eea;
         }
 
+        .item-card.not-needed .item-checkbox {
+            accent-color: #999;
+        }
+
         .item-details {
             flex: 1;
         }
@@ -649,14 +653,13 @@
     <div class="container">
         <!-- 头部标题 -->
         <div class="header">
-            <h1>✈️ 旅行物品备忘录</h1>
-            <p>轻松管理你的旅行清单，确保不遗漏任何物品</p>
+            <h1>旅行清单</h1>
+            <p>带上你的好心情，以及所有该带的东西</p>
         </div>
 
         <!-- 完成提示消息 -->
         <div class="completion-message" id="completionMessage">
-            <h2>🎉 马上出发！</h2>
-            <p>所有物品已准备就绪，祝你旅途愉快！</p>
+            <h2>🎉 准备就绪，旅途愉快！</h2>
         </div>
 
         <!-- 物品列表区域 -->
@@ -734,17 +737,122 @@
     <script>
         // ==================== 数据存储和管理 ====================
 
-        // 从localStorage加载物品数据
-        let items = JSON.parse(localStorage.getItem('travelItems')) || [];
-
         // 默认类别列表
-        const defaultCategories = ['证件', '衣物', '电子设备', '洗漱用品', '药品', '其他'];
+        const defaultCategories = [
+            '最重要的物品',
+            '衣物鞋履',
+            '电子设备',
+            '包类',
+            '健康药品',
+            '洗漱个护',
+            '其他',
+            '出境游特别物品'
+        ];
+
+        // 默认物品清单
+        const defaultItems = [
+            // 最重要的物品
+            { name: '手机', category: '最重要的物品' },
+            { name: '身份证', category: '最重要的物品' },
+            { name: '钱包', category: '最重要的物品' },
+            { name: '钥匙', category: '最重要的物品' },
+            // 衣物鞋履
+            { name: '外套', category: '衣物鞋履' },
+            { name: '上衣', category: '衣物鞋履' },
+            { name: '裤子', category: '衣物鞋履' },
+            { name: '内衣内裤', category: '衣物鞋履' },
+            { name: '袜子', category: '衣物鞋履' },
+            { name: '泳衣泳裤', category: '衣物鞋履' },
+            { name: '帽子', category: '衣物鞋履' },
+            { name: '睡衣', category: '衣物鞋履' },
+            { name: '拖鞋', category: '衣物鞋履' },
+            { name: '备用鞋', category: '衣物鞋履' },
+            { name: '雨衣', category: '衣物鞋履' },
+            { name: '太阳镜', category: '衣物鞋履' },
+            // 电子设备
+            { name: '手机充电线', category: '电子设备' },
+            { name: '手机充电头', category: '电子设备' },
+            { name: '耳机', category: '电子设备' },
+            { name: '充电宝', category: '电子设备' },
+            { name: '相机及充电器', category: '电子设备' },
+            { name: '相机备用电池（需单独携带）', category: '电子设备' },
+            { name: '智能手表及充电器', category: '电子设备' },
+            { name: '电子书', category: '电子设备' },
+            { name: '插线板', category: '电子设备' },
+            // 包类
+            { name: '随身包', category: '包类' },
+            { name: '零钱包', category: '包类' },
+            // 健康药品
+            { name: '个人日常用药', category: '健康药品' },
+            { name: '感冒药', category: '健康药品' },
+            { name: '肠胃药', category: '健康药品' },
+            { name: '创可贴', category: '健康药品' },
+            { name: '驱蚊液', category: '健康药品' },
+            { name: '晕车药', category: '健康药品' },
+            // 洗漱个护
+            { name: '护肤品', category: '洗漱个护' },
+            { name: '防晒霜', category: '洗漱个护' },
+            { name: '旅行套装（洗发水、沐浴露、洗面奶、牙膏牙刷）', category: '洗漱个护' },
+            { name: '毛巾', category: '洗漱个护' },
+            { name: '剃须刀', category: '洗漱个护' },
+            { name: '口罩', category: '洗漱个护' },
+            { name: '一次性马桶垫', category: '洗漱个护' },
+            { name: '卫生纸', category: '洗漱个护' },
+            { name: '湿厕纸', category: '洗漱个护' },
+            { name: '卫生巾', category: '洗漱个护' },
+            // 其他
+            { name: '眼罩', category: '其他' },
+            { name: '耳塞', category: '其他' },
+            { name: 'U型枕', category: '其他' },
+            { name: '保温杯', category: '其他' },
+            { name: '垃圾袋', category: '其他' },
+            { name: '旅途食物', category: '其他' },
+            { name: '确认住宿及交通预订信息', category: '其他' },
+            { name: '确认行李托运额信息', category: '其他' },
+            { name: '确认目的地天气信息', category: '其他' },
+            // 出境游特别物品
+            { name: '护照', category: '出境游特别物品' },
+            { name: '签证单', category: '出境游特别物品' },
+            { name: '换汇', category: '出境游特别物品' },
+            { name: '境外信用卡', category: '出境游特别物品' },
+            { name: '银联储蓄卡（紧急情况取钱）', category: '出境游特别物品' },
+            { name: '确认开通漫游或购买当地手机卡', category: '出境游特别物品' },
+            { name: '换SIM卡工具', category: '出境游特别物品' },
+            { name: 'SIM临时储存盒', category: '出境游特别物品' },
+            { name: '插座转换头', category: '出境游特别物品' },
+            { name: '笔（提前填写入境卡）', category: '出境游特别物品' },
+        ];
+
+        // 从localStorage加载物品数据，如果没有则使用默认清单
+        let items = JSON.parse(localStorage.getItem('travelItems'));
+        let isDefaultItems = false;
+        if (!items) {
+            items = defaultItems.map((item, index) => ({
+                id: Date.now() + index,
+                name: item.name,
+                category: item.category,
+                status: 'pending'
+            }));
+            isDefaultItems = true;
+            saveItems();
+        }
 
         // 从localStorage加载类别数据
-        let categories = JSON.parse(localStorage.getItem('travelCategories')) || [...defaultCategories];
+        let categories = JSON.parse(localStorage.getItem('travelCategories'));
+        if (!categories) {
+            categories = [...defaultCategories];
+            saveCategories();
+        }
 
-        // 记录每个类别的展开/折叠状态
-        let collapsedCategories = JSON.parse(localStorage.getItem('collapsedCategories')) || {};
+        // 如果是首次使用默认物品，折叠所有类别
+        let collapsedCategories = JSON.parse(localStorage.getItem('collapsedCategories'));
+        if (!collapsedCategories) {
+            collapsedCategories = {};
+            defaultCategories.forEach(cat => {
+                collapsedCategories[cat] = true; // 默认折叠所有类别
+            });
+            saveCollapsedCategories();
+        }
 
         /**
          * 保存物品数据到localStorage
@@ -1023,7 +1131,7 @@
             return `
                 <div class="item-card ${statusClass}" data-id="${item.id}">
                     <input type="checkbox" class="item-checkbox"
-                           ${item.status === 'ready' ? 'checked' : ''}
+                           ${item.status === 'ready' || item.status === 'not-needed' ? 'checked' : ''}
                            onchange="toggleItemStatus(${item.id})">
                     <div class="item-details">
                         <div class="item-name">${escapeHtml(item.name)}</div>
@@ -1033,10 +1141,10 @@
                         </div>
                     </div>
                     <div class="item-actions">
-                        <button class="btn-icon btn-toggle" onclick="cycleItemStatus(${item.id})" title="切换状态">
+                        <button class="btn-icon btn-toggle" onclick="setNotNeeded(${item.id})" title="标记为无需准备">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <polyline points="23 4 23 10 17 10"></polyline>
-                                <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line>
                             </svg>
                         </button>
                         <button class="btn-icon btn-delete" onclick="deleteItem(${item.id})" title="删除">
@@ -1137,18 +1245,13 @@
         }
 
         /**
-         * 循环切换物品状态
+         * 将物品标记为无需准备
          */
-        function cycleItemStatus(id) {
+        function setNotNeeded(id) {
             const item = items.find(item => item.id === id);
             if (item) {
-                if (item.status === 'pending') {
-                    item.status = 'ready';
-                } else if (item.status === 'ready') {
-                    item.status = 'not-needed';
-                } else {
-                    item.status = 'pending';
-                }
+                // 如果已经是无需准备状态，则改回待准备；否则设为无需准备
+                item.status = item.status === 'not-needed' ? 'pending' : 'not-needed';
                 saveItems();
                 renderItems();
             }
