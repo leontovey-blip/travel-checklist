@@ -67,33 +67,66 @@
             font-size: 14px;
         }
 
-        /* ==================== 完成提示 ==================== */
-        .completion-message {
+        /* ==================== 完成提示弹窗 ==================== */
+        .completion-overlay {
             display: none;
-            text-align: center;
-            padding: 20px;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.6);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+
+        .completion-overlay.show {
+            display: flex;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .completion-popup {
             background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
             color: white;
+            padding: 40px 60px;
+            border-radius: 20px;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            animation: popIn 0.4s ease;
+            cursor: default;
         }
 
-        .completion-message.show {
-            display: block;
-            animation: pulse 2s infinite;
+        @keyframes popIn {
+            from {
+                transform: scale(0.8);
+                opacity: 0;
+            }
+            to {
+                transform: scale(1);
+                opacity: 1;
+            }
         }
 
-        .completion-message h2 {
-            font-size: 24px;
-            margin-bottom: 5px;
+        .completion-popup h2 {
+            font-size: 28px;
+            margin-bottom: 10px;
         }
 
-        .completion-message p {
-            font-size: 14px;
+        .completion-popup p {
+            font-size: 16px;
             opacity: 0.9;
         }
 
-        @keyframes pulse {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.02); }
+        /* 旧的完成提示样式（保留但不使用） */
+        .completion-message {
+            display: none;
         }
 
         /* ==================== 物品列表区域 ==================== */
@@ -322,6 +355,44 @@
 
         .category-group-items.collapsed {
             max-height: 0 !important;
+        }
+
+        /* 类别批量操作按钮 */
+        .category-batch-actions {
+            display: flex;
+            gap: 6px;
+            margin-left: 8px;
+        }
+
+        .btn-batch {
+            padding: 4px 10px;
+            border: none;
+            border-radius: 6px;
+            font-size: 11px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+        }
+
+        .btn-batch-ready {
+            background: rgba(76, 175, 80, 0.9);
+            color: white;
+        }
+
+        .btn-batch-ready:hover {
+            background: #43a047;
+            transform: scale(1.05);
+        }
+
+        .btn-batch-not-needed {
+            background: rgba(33, 150, 243, 0.9);
+            color: white;
+        }
+
+        .btn-batch-not-needed:hover {
+            background: #1976d2;
+            transform: scale(1.05);
         }
 
         /* ==================== 底部操作区域 ==================== */
@@ -655,9 +726,12 @@
             <p>带上你的好心情，以及所有该带的东西</p>
         </div>
 
-        <!-- 完成提示消息 -->
-        <div class="completion-message" id="completionMessage">
-            <h2>🎉 准备就绪，旅途愉快！</h2>
+        <!-- 完成提示弹窗 -->
+        <div class="completion-overlay" id="completionOverlay" onclick="closeCompletionPopup()">
+            <div class="completion-popup" onclick="event.stopPropagation()">
+                <h2>🎉 准备出发，旅途愉快！</h2>
+                <p>点击任意位置关闭</p>
+            </div>
         </div>
 
         <!-- 物品列表区域 -->
@@ -1098,6 +1172,14 @@
                             <span class="category-toggle-icon ${isCollapsed ? 'collapsed' : ''}">▼</span>
                             <span class="category-group-name">${escapeHtml(category)}</span>
                             <span class="category-group-count">${completedCount}/${categoryItems.length}</span>
+                            <div class="category-batch-actions" onclick="event.stopPropagation()">
+                                <button class="btn-batch btn-batch-ready" onclick="markCategoryAsReady('${escapeHtml(category)}')" title="将该类别所有物品标记为已准备">
+                                    已准备
+                                </button>
+                                <button class="btn-batch btn-batch-not-needed" onclick="markCategoryAsNotNeeded('${escapeHtml(category)}')" title="将该类别所有物品标记为无需准备">
+                                    无需准备
+                                </button>
+                            </div>
                         </div>
                         <div class="category-group-items ${isCollapsed ? 'collapsed' : ''}"
                              style="max-height: ${isCollapsed ? '0' : categoryItems.length * 200 + 'px'}">
@@ -1172,7 +1254,7 @@
             if (items.length === 0) {
                 document.getElementById('progressBar').style.width = '0%';
                 document.getElementById('progressPercentage').textContent = '0%';
-                document.getElementById('completionMessage').classList.remove('show');
+                closeCompletionPopup();
                 return;
             }
 
@@ -1189,16 +1271,23 @@
             document.getElementById('progressPercentage').textContent = percentage + '%';
 
             // 如果所有物品都已完成，显示完成提示并切换主题
-            const completionMessage = document.getElementById('completionMessage');
+            const completionOverlay = document.getElementById('completionOverlay');
             if (percentage === 100) {
-                completionMessage.classList.add('show');
+                completionOverlay.classList.add('show');
                 // 切换为绿色主题
                 document.body.classList.add('completed-theme');
             } else {
-                completionMessage.classList.remove('show');
+                closeCompletionPopup();
                 // 恢复紫色主题
                 document.body.classList.remove('completed-theme');
             }
+        }
+
+        /**
+         * 关闭完成提示弹窗
+         */
+        function closeCompletionPopup() {
+            document.getElementById('completionOverlay').classList.remove('show');
         }
 
         // ==================== 物品操作功能 ====================
@@ -1272,6 +1361,12 @@
                 item.status = 'pending';
             });
 
+            // 将所有类别设置为折叠状态
+            categories.forEach(cat => {
+                collapsedCategories[cat] = true;
+            });
+            saveCollapsedCategories();
+
             saveItems();
             renderItems();
 
@@ -1285,6 +1380,32 @@
         function toggleCategoryCollapse(category) {
             collapsedCategories[category] = !collapsedCategories[category];
             saveCollapsedCategories();
+            renderItems();
+        }
+
+        /**
+         * 将类别下所有物品标记为已准备
+         */
+        function markCategoryAsReady(category) {
+            items.forEach(item => {
+                if (item.category === category) {
+                    item.status = 'ready';
+                }
+            });
+            saveItems();
+            renderItems();
+        }
+
+        /**
+         * 将类别下所有物品标记为无需准备
+         */
+        function markCategoryAsNotNeeded(category) {
+            items.forEach(item => {
+                if (item.category === category) {
+                    item.status = 'not-needed';
+                }
+            });
+            saveItems();
             renderItems();
         }
 
