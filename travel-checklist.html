@@ -101,6 +101,7 @@
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
             animation: popIn 0.4s ease;
             cursor: default;
+            max-width: 90vw;
         }
 
         @keyframes popIn {
@@ -117,6 +118,7 @@
         .completion-popup h2 {
             font-size: 28px;
             margin-bottom: 10px;
+            white-space: nowrap;
         }
 
         .completion-popup p {
@@ -715,6 +717,22 @@
             .item-actions {
                 flex-shrink: 0;
             }
+
+            /* 完成弹窗手机端适配 */
+            .completion-popup {
+                padding: 30px 25px;
+                max-width: 85vw;
+            }
+
+            .completion-popup h2 {
+                font-size: 22px;
+                white-space: normal;
+                word-break: keep-all;
+            }
+
+            .completion-popup p {
+                font-size: 14px;
+            }
         }
     </style>
 </head>
@@ -925,6 +943,9 @@
             });
             saveCollapsedCategories();
         }
+
+        // 标记完成弹窗是否已在本轮中显示过
+        let completionPopupShown = JSON.parse(localStorage.getItem('completionPopupShown')) || false;
 
         /**
          * 保存物品数据到localStorage
@@ -1270,10 +1291,12 @@
             document.getElementById('progressBar').style.width = percentage + '%';
             document.getElementById('progressPercentage').textContent = percentage + '%';
 
-            // 如果所有物品都已完成，显示完成提示并切换主题
+            // 如果所有物品都已完成，且弹窗未显示过，则显示完成提示并切换主题
             const completionOverlay = document.getElementById('completionOverlay');
-            if (percentage === 100) {
+            if (percentage === 100 && !completionPopupShown) {
                 completionOverlay.classList.add('show');
+                completionPopupShown = true;
+                localStorage.setItem('completionPopupShown', 'true');
                 // 切换为绿色主题
                 document.body.classList.add('completed-theme');
             } else {
@@ -1366,6 +1389,10 @@
                 collapsedCategories[cat] = true;
             });
             saveCollapsedCategories();
+
+            // 重置完成弹窗显示标志，允许下次完成时再次显示
+            completionPopupShown = false;
+            localStorage.setItem('completionPopupShown', 'false');
 
             saveItems();
             renderItems();
